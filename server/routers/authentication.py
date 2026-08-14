@@ -1,5 +1,6 @@
 import os
 import html
+from pathlib import Path
 from dotenv import load_dotenv
 from datetime import datetime, timedelta, timezone, UTC, date
 from secrets import token_urlsafe
@@ -26,6 +27,7 @@ from ..models.dbmodels import UserAccount, UserAccountRole, \
     PasswordResetToken
 from ..utils.email_service import send_email
 from ..utils.audit_log import write_audit_log
+
 
 EMAIL_VALIDATION_ENABLED = True
 ALGORITHM = 'HS256'
@@ -207,7 +209,7 @@ def _send_validation_email(user: UserAccount, token: str):
 
     validation_url = f"{BACKEND_URL}/validate-email?token={token}"
 
-    logo_url = f"{BACKEND_URL}/static/images/wellai-logo.png"
+    logo_path = Path(__file__).resolve().parent.parent / "static" / "images" / "wellai-logo.png"
 
     email_subject = "Verify your WellAI account"
 
@@ -236,7 +238,7 @@ def _send_validation_email(user: UserAccount, token: str):
                     border-bottom: 1px solid #eeeeee;
                 ">
                     <img
-                        src="{logo_url}"
+                        src="cid:wellai-logo"
                         alt="WellAI"
                         style="
                             max-width: 220px;
@@ -351,7 +353,9 @@ def _send_validation_email(user: UserAccount, token: str):
         recipient=user.Email,
         subject=email_subject,
         content=email_content,
-        content_type="html"
+        content_type="html",
+        inline_image_path=str(logo_path),
+        inline_image_cid="wellai-logo"
     )
 
 
