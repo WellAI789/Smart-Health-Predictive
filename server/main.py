@@ -18,7 +18,8 @@ from .routers import health_prediction, authentication, users, admin
 DEFAULT_ORIGINS = [
     "http://localhost:3000",
     "http://localhost:8000",
-    "https://smart-health-predictive-test.onrender.com"
+    "https://smart-health-predictive-test.onrender.com",
+    "https://wellai.app"
 ]
 ENV_ORIGINS = [
     origin.strip()
