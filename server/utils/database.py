@@ -27,7 +27,9 @@ if os.getenv("MYSQL_SSL", "false").lower() == "true":
 
 engine = create_engine(
     DATABASE_URL,
-    connect_args=connect_args
+    connect_args=connect_args,
+    pool_pre_ping=True,
+    pool_recycle=1800,
 )
 session_local = sessionmaker(autocommit=False, bind=engine)
 
