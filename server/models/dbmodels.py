@@ -274,7 +274,7 @@ class HealthData(Base):
         self.SmokingStatus = smoker
         self.MaritalStatus = maritalStatus
         self.WorkingStatus = workingStatus
-        self.Stroke = stroke,
+        self.Stroke = stroke
         self.Race = race
 
     def __repr__(self):
