@@ -1,3 +1,5 @@
+import os
+from pathlib import Path
 from datetime import datetime, date, timedelta, timezone, UTC
 from decimal import Decimal
 from typing import List, Optional
@@ -1427,56 +1429,249 @@ def patient_accept_request(patient_accept_details: PatientAcceptDetails, request
     return {"message": "Merchant access successfully granted"}
 
 
-def send_patient_request_email(email: str, patient: Patient, clinic: str, request: Request, token: str):
+def send_patient_request_email(
+    email: str,
+    patient: Patient,
+    clinic: str,
+    request: Request,
+    token: str
+):
     """
-    Send an email to a patient requesting permission for a merchant to access their records.
+    Send a branded email to a patient requesting permission
+    for a merchant to access their health records.
 
-    All dynamic content (token, name, clinic) is sanitised before embedding
+    All dynamic content is sanitised before embedding it
     in the HTML email body.
 
     :param email: The recipient patient's email address.
-    :param patient: The patient's profile (for personalisation).
+    :param patient: The patient's profile.
     :param clinic: The requesting clinic's name.
-    :param request: The HTTP request (for client-context logging; unused in body).
-    :param token: The unsigned access-request token to embed in the link.
+    :param request: The HTTP request.
+    :param token: The unsigned access-request token.
     """
     sanitizer = Sanitizer()
+
     sanitized_token = sanitizer.sanitize(token)
     given_names = sanitizer.sanitize(patient.GivenNames)
     family_name = sanitizer.sanitize(patient.FamilyName)
     clinic_name = sanitizer.sanitize(clinic)
 
-    url = f"https://wellai.app/prediction/accept-access-request/{sanitized_token}"
-    subject = "Patient Access Request for WellAI Smart Health Predictive"
+    frontend_url = os.getenv(
+        "FRONTEND_URL",
+        "https://smart-health-predictive.vercel.app"
+    )
+
+    access_request_url = (
+        f"{frontend_url}/accept-access-request/{sanitized_token}"
+    )
+
+    logo_path = (
+        Path(__file__).resolve().parent.parent
+        / "static"
+        / "images"
+        / "wellai-logo.png"
+    )
+
+    subject = "Patient Access Request - WellAI Smart Health Predictive"
+
     content = f"""
     <html>
-        <body>
-            <p>Greetings {given_names} {family_name},</p>
-            <p>You have received a request from our partner {clinic_name} at WellAI Smart Health Predictive to access your patient record.</p>
-            <p>Click the following link to proceed with this process and provide access to {clinic_name} to manage your patient record.
-            <p>This will allow {clinic_name} to:</p>
-            <ul>
-                <li>View your health report history</li>
-                <li>Generate new health reports based on your data</li>
-                <li>View your health data</li>
-            </ul>
-            For security, this link will expire in 7 days:
-              <a href={url}>Accept Request</a>
-            </p>
-            <br />
-            <p>If you did not expect this request, you can safely ignore this email.</p>
-            <p>Best regards,</p>
-            <p>The WellAI Team</p>
+        <body style="
+            margin: 0;
+            padding: 0;
+            background-color: #f5f5f5;
+            font-family: Arial, Helvetica, sans-serif;
+        ">
+            <div style="
+                max-width: 600px;
+                margin: 30px auto;
+                background-color: #ffffff;
+                border-radius: 8px;
+                overflow: hidden;
+                box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            ">
+
+                <!-- Header -->
+                <div style="
+                    background-color: #ffffff;
+                    padding: 25px;
+                    text-align: center;
+                    border-bottom: 1px solid #eeeeee;
+                ">
+                    <img
+                        src="cid:wellai-logo"
+                        alt="WellAI"
+                        style="
+                            max-width: 220px;
+                            width: 100%;
+                            height: auto;
+                        "
+                    >
+                </div>
+
+                <!-- Content -->
+                <div style="
+                    padding: 35px 40px;
+                    color: #333333;
+                ">
+                    <h1 style="
+                        color: #6F2C91;
+                        font-size: 24px;
+                        margin-top: 0;
+                        margin-bottom: 20px;
+                    ">
+                        Patient Access Request
+                    </h1>
+
+                    <p style="
+                        font-size: 16px;
+                        line-height: 1.6;
+                        margin: 0 0 15px 0;
+                    ">
+                        Hello {given_names} {family_name},
+                    </p>
+
+                    <p style="
+                        font-size: 16px;
+                        line-height: 1.6;
+                        margin: 0 0 15px 0;
+                    ">
+                        <strong>{clinic_name}</strong> has requested
+                        permission to access your health records through
+                        WellAI Smart Health Predictive.
+                    </p>
+
+                    <p style="
+                        font-size: 16px;
+                        line-height: 1.6;
+                        margin: 0 0 10px 0;
+                    ">
+                        If you approve this request, the clinic will be able to:
+                    </p>
+
+                    <!-- Access permissions -->
+                    <div style="
+                        background-color: #f8f4fa;
+                        border-left: 4px solid #6F2C91;
+                        padding: 15px 18px;
+                        margin: 20px 0;
+                    ">
+                        <ul style="
+                            margin: 0;
+                            padding-left: 20px;
+                            color: #444444;
+                            font-size: 14px;
+                            line-height: 1.7;
+                        ">
+                            <li>View your health report history</li>
+                            <li>Generate new health reports based on your data</li>
+                            <li>View your health data</li>
+                        </ul>
+                    </div>
+
+                    <!-- Approval button -->
+                    <div style="
+                        text-align: center;
+                        margin: 30px 0;
+                    ">
+                        <a
+                            href="{access_request_url}"
+                            style="
+                                display: inline-block;
+                                padding: 14px 30px;
+                                background-color: #6F2C91;
+                                color: #ffffff;
+                                text-decoration: none;
+                                border-radius: 6px;
+                                font-weight: bold;
+                                font-size: 16px;
+                            "
+                        >
+                            Review Access Request
+                        </a>
+                    </div>
+
+                    <!-- Expiry notice -->
+                    <div style="
+                        background-color: #f8f4fa;
+                        border-left: 4px solid #6F2C91;
+                        padding: 14px 16px;
+                        margin: 25px 0;
+                    ">
+                        <p style="
+                            margin: 0;
+                            font-size: 14px;
+                            line-height: 1.5;
+                            color: #555555;
+                        ">
+                            This access request link will expire in
+                            <strong>7 days</strong>.
+                        </p>
+                    </div>
+
+                    <p style="
+                        font-size: 14px;
+                        line-height: 1.6;
+                        color: #666666;
+                        margin-top: 25px;
+                    ">
+                        If you did not expect this request, you can safely
+                        ignore this email. Your health records will not be
+                        shared unless you approve the request.
+                    </p>
+
+                    <p style="
+                        font-size: 14px;
+                        line-height: 1.6;
+                        color: #666666;
+                    ">
+                        For your security, please do not forward this email
+                        or share your access-request link with anyone.
+                    </p>
+                </div>
+
+                <!-- Footer -->
+                <div style="
+                    background-color: #f8f8f8;
+                    padding: 20px;
+                    text-align: center;
+                    color: #777777;
+                    font-size: 12px;
+                ">
+                    <p style="margin: 5px 0;">
+                        Please do not reply to this email.
+                    </p>
+
+                    <p style="margin: 10px 0;">
+                        <a
+                            href="https://wellai.app/privacy-notice/"
+                            style="
+                                color: #6F2C91;
+                                text-decoration: none;
+                            "
+                        >
+                            Privacy Notice
+                        </a>
+                    </p>
+
+                    <p style="margin: 5px 0;">
+                        &copy; 2026 WellAI Sdn. Bhd. All rights reserved.
+                    </p>
+                </div>
+
+            </div>
         </body>
     </html>
     """
+
     send_email(
         recipient=email,
         subject=subject,
         content=content,
-        content_type="html"
+        content_type="html",
+        inline_image_path=str(logo_path),
+        inline_image_cid="wellai-logo"
     )
-
 
 def is_name_valid(name: str):
     '''Verifies a name is valid.'''

@@ -1205,12 +1205,17 @@ async def password_reset(
     )
 
 
-def _send_reset_password_email(user: UserAccount, patient: Patient, request: Request, token: str):
+def _send_reset_password_email(
+    user: UserAccount,
+    patient: Patient,
+    request: Request,
+    token: str
+):
     """
-    Send a password-reset email containing a signed link to the user.
+    Send a branded password-reset email containing a signed link.
 
-    Sanitises all dynamic content (token, name, IP, device) before embedding
-    in the HTML email to prevent XSS in rendered email clients.
+    Sanitises all dynamic content before embedding it in the HTML email
+    to prevent XSS in rendered email clients.
 
     :param user: The target user account.
     :param patient: The user's patient profile (for personalisation).
@@ -1218,37 +1223,251 @@ def _send_reset_password_email(user: UserAccount, patient: Patient, request: Req
     :param token: The unsigned reset token to embed in the link.
     """
     sanitizer = Sanitizer()
+
     sanitized_token = sanitizer.sanitize(token)
     given_names = sanitizer.sanitize(patient.GivenNames)
     family_name = sanitizer.sanitize(patient.FamilyName)
     ip_address = sanitizer.sanitize(request.client.host)
     device = sanitizer.sanitize(request.headers.get("user-agent"))
 
-    url = f"https://wellai.app/prediction/reset-password/{sanitized_token}"
-    subject = "Password reset request for WellAI Smart Health Predictive"
+    frontend_url = os.getenv(
+        "FRONTEND_URL",
+        "https://smart-health-predictive.vercel.app"
+    )
+
+    reset_url = f"{frontend_url}/reset-password/{sanitized_token}"
+
+    logo_path = (
+        Path(__file__).resolve().parent.parent
+        / "static"
+        / "images"
+        / "wellai-logo.png"
+    )
+
+    subject = "Reset your WellAI password"
+
     content = f"""
     <html>
-        <body>
-            <p>Greetings {given_names} {family_name},</p>
-            <p>We have received a request to reset the password for your account with WellAI Smart Health Predictive.</p>
-            <p>Click the following link to proceed this process and update your password. For security, this link will expire in 30 minutes:
-              <a href={url}>Reset Password</a>
-            </p>
-            <p>Request Details:
-            <ul>
-              <li>IP Address: _{ip_address} </li>
-              <li>Device: {device} </li>
-            </ul>
-            <p>If you did not request a password reset, your account may be at risk, but you can safely ignore this email and your password will not be altered.</p>
-            <br />
-            <p>Best regards,</p>
-            <p>The WellAI Team</p>
+        <body style="
+            margin: 0;
+            padding: 0;
+            background-color: #f5f5f5;
+            font-family: Arial, Helvetica, sans-serif;
+        ">
+            <div style="
+                max-width: 600px;
+                margin: 30px auto;
+                background-color: #ffffff;
+                border-radius: 8px;
+                overflow: hidden;
+                box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            ">
+
+                <!-- Header -->
+                <div style="
+                    background-color: #ffffff;
+                    padding: 25px;
+                    text-align: center;
+                    border-bottom: 1px solid #eeeeee;
+                ">
+                    <img
+                        src="cid:wellai-logo"
+                        alt="WellAI"
+                        style="
+                            max-width: 220px;
+                            width: 100%;
+                            height: auto;
+                        "
+                    >
+                </div>
+
+                <!-- Content -->
+                <div style="
+                    padding: 35px 40px;
+                    color: #333333;
+                ">
+                    <h1 style="
+                        color: #6F2C91;
+                        font-size: 24px;
+                        margin-top: 0;
+                        margin-bottom: 20px;
+                    ">
+                        Reset Your Password
+                    </h1>
+
+                    <p style="
+                        font-size: 16px;
+                        line-height: 1.6;
+                        margin: 0 0 15px 0;
+                    ">
+                        Hello {given_names} {family_name},
+                    </p>
+
+                    <p style="
+                        font-size: 16px;
+                        line-height: 1.6;
+                        margin: 0 0 15px 0;
+                    ">
+                        We received a request to reset the password for
+                        your WellAI Smart Health Predictive account.
+                    </p>
+
+                    <p style="
+                        font-size: 16px;
+                        line-height: 1.6;
+                        margin: 0 0 10px 0;
+                    ">
+                        Click the button below to create a new password.
+                    </p>
+
+                    <!-- Reset button -->
+                    <div style="
+                        text-align: center;
+                        margin: 30px 0;
+                    ">
+                        <a
+                            href="{reset_url}"
+                            style="
+                                display: inline-block;
+                                padding: 14px 30px;
+                                background-color: #6F2C91;
+                                color: #ffffff;
+                                text-decoration: none;
+                                border-radius: 6px;
+                                font-weight: bold;
+                                font-size: 16px;
+                            "
+                        >
+                            Reset Password
+                        </a>
+                    </div>
+
+                    <!-- Expiry notice -->
+                    <div style="
+                        background-color: #f8f4fa;
+                        border-left: 4px solid #6F2C91;
+                        padding: 14px 16px;
+                        margin: 25px 0;
+                    ">
+                        <p style="
+                            margin: 0;
+                            font-size: 14px;
+                            line-height: 1.5;
+                            color: #555555;
+                        ">
+                            For your security, this password-reset link
+                            will expire in <strong>30 minutes</strong>.
+                        </p>
+                    </div>
+
+                    <!-- Security information -->
+                    <h2 style="
+                        color: #444444;
+                        font-size: 16px;
+                        margin: 25px 0 10px 0;
+                    ">
+                        Security Information
+                    </h2>
+
+                    <table style="
+                        width: 100%;
+                        border-collapse: collapse;
+                        font-size: 14px;
+                    ">
+                        <tr>
+                            <td style="
+                                padding: 8px 0;
+                                color: #666666;
+                                width: 120px;
+                            ">
+                                IP Address
+                            </td>
+                            <td style="
+                                padding: 8px 0;
+                                color: #333333;
+                            ">
+                                {ip_address}
+                            </td>
+                        </tr>
+
+                        <tr>
+                            <td style="
+                                padding: 8px 0;
+                                color: #666666;
+                                vertical-align: top;
+                            ">
+                                Device
+                            </td>
+                            <td style="
+                                padding: 8px 0;
+                                color: #333333;
+                                word-break: break-word;
+                            ">
+                                {device}
+                            </td>
+                        </tr>
+                    </table>
+
+                    <p style="
+                        font-size: 14px;
+                        line-height: 1.6;
+                        color: #666666;
+                        margin-top: 25px;
+                    ">
+                        If you did not request a password reset, you can
+                        safely ignore this email. Your password will not
+                        be changed unless you complete the reset process.
+                    </p>
+
+                    <p style="
+                        font-size: 14px;
+                        line-height: 1.6;
+                        color: #666666;
+                    ">
+                        For your security, please do not forward this email
+                        or share your password-reset link with anyone.
+                    </p>
+                </div>
+
+                <!-- Footer -->
+                <div style="
+                    background-color: #f8f8f8;
+                    padding: 20px;
+                    text-align: center;
+                    color: #777777;
+                    font-size: 12px;
+                ">
+                    <p style="margin: 5px 0;">
+                        Please do not reply to this email.
+                    </p>
+
+                    <p style="margin: 10px 0;">
+                        <a
+                            href="https://wellai.app/privacy-notice/"
+                            style="
+                                color: #6F2C91;
+                                text-decoration: none;
+                            "
+                        >
+                            Privacy Notice
+                        </a>
+                    </p>
+
+                    <p style="margin: 5px 0;">
+                        &copy; 2026 WellAI Sdn. Bhd. All rights reserved.
+                    </p>
+                </div>
+
+            </div>
         </body>
     </html>
     """
+
     send_email(
         recipient=user.Email,
         subject=subject,
         content=content,
-        content_type="html"
+        content_type="html",
+        inline_image_path=str(logo_path),
+        inline_image_cid="wellai-logo"
     )
