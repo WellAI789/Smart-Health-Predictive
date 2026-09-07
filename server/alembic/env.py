@@ -1,6 +1,8 @@
 from logging.config import fileConfig
 import os
 import re
+import sys
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from dotenv import load_dotenv
 
 from sqlalchemy import engine_from_config
@@ -46,7 +48,7 @@ def run_migrations_offline() -> None:
     script output.
 
     """
-    url = config.get_main_option("sqlalchemy.url")
+    url = os.getenv("DATABASE_URL")
     context.configure(
         url=url,
         target_metadata=target_metadata,
@@ -65,25 +67,12 @@ def run_migrations_online() -> None:
     and associate a connection with the context.
 
     """
-    url_tokens = {
-        "MYSQL_USER": os.getenv("MYSQL_USER", "admin"),
-        "MYSQL_PASSWORD": os.getenv("MYSQL_PASSWORD", "admin"),
-        "MYSQL_HOST": os.getenv("MYSQL_HOST", "localhost"),
-        "MYSQL_PORT": os.getenv("MYSQL_PORT", "3307"),
-        "MYSQL_DATABASE": os.getenv("MYSQL_DATABASE", "user-db")
-    }
-
-    url = config.get_main_option("sqlalchemy.url")
-
-    url = re.sub(r"\${(.+?)}", lambda m: url_tokens[m.group(1)], url)
+    url = os.getenv("DATABASE_URL")
 
     # Get the absolute path to the CA certificate
     cert_path = os.path.join(os.path.dirname(__file__), '..', 'certs', 'DigiCertGlobalRootCA.crt.pem')
 
     connect_args = {}
-
-    if os.getenv("MYSQL_SSL", "false").lower() == "true":
-        connect_args["ssl_ca"] = cert_path
 
     connectable = create_engine(
         url,
@@ -93,7 +82,7 @@ def run_migrations_online() -> None:
     with connectable.connect() as connection:
         context.configure(
             connection=connection, target_metadata=target_metadata,
-            version_table="AlembicVersion"
+            version_table="alembic_version"
         )
 
         with context.begin_transaction():
