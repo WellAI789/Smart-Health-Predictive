@@ -1,6 +1,7 @@
 import ErrorIcon from "@mui/icons-material/Error";
 import { Card, CardContent, Stack, Typography } from "@mui/material";
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 const API_BASE = process.env.REACT_APP_API_URL || "http://localhost:8000";
 
@@ -10,6 +11,7 @@ const API_BASE = process.env.REACT_APP_API_URL || "http://localhost:8000";
  * @returns {@mui.material.Card}
  */
 const PendingMerchantsAnalytics = () => {
+  const navigate = useNavigate();
   const [data, setData] = useState({});
 
   useEffect(() => {
@@ -29,7 +31,15 @@ const PendingMerchantsAnalytics = () => {
   }, []);
 
   return (
-    <Card sx={{ px: "5px", py: "0px", textAlign: "center" }}>
+    <Card
+      sx={{
+        px: "5px",
+        py: "0px",
+        textAlign: "center",
+        cursor: "pointer",
+      }}
+      onClick={() => navigate("/admin-account-approval")}
+    >
       <CardContent>
         <Stack direction="row">
           <Stack direction="row" justifyContent="space-around">
