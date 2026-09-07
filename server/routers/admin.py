@@ -128,7 +128,7 @@ async def get_users(
 
     # Query users and roles, then apply pagination.
     query = db_conn.query(UserAccount, AccountRole, Patient, Clinic) \
-        .filter(UserAccount.IsValidated == 1) \
+        .filter(UserAccount.IsValidated == True) \
         .outerjoin(UserAccountRole, UserAccount.UserID == UserAccountRole.UserID) \
         .outerjoin(AccountRole, UserAccountRole.RoleID == AccountRole.RoleID) \
         .outerjoin(Patient, Patient.UserID == UserAccount.UserID) \
@@ -449,7 +449,7 @@ async def get_invalid_merchant_accounts(db_conn: Session = Depends(get_db)):
         .outerjoin(UserAccountRole, UserAccount.UserID == UserAccountRole.UserID) \
         .outerjoin(AccountRole, UserAccountRole.RoleID == AccountRole.RoleID) \
         .filter(AccountRole.RoleName == "merchant") \
-        .filter(UserAccount.IsValidated == 0) \
+        .filter(UserAccount.IsValidated == False) \
         .all()
 
     result = []
@@ -512,7 +512,7 @@ async def validate_merchant(merchant_email: str, request: Request, db_conn: Sess
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="User not found.")
 
-    merchant.IsValidated = 1
+    merchant.IsValidated = True
     db_conn.commit()
     write_audit_log(db_conn,
                     eventType=LogEventType.MERCHANT_VALIDATED,
@@ -709,7 +709,7 @@ async def get_pending_merchant_analytics(request: Request, db_conn: Session = De
         .join(AccountRole, AccountRole.RoleID == UserAccountRole.RoleID)
         .filter(
             AccountRole.RoleName == "merchant",
-            UserAccount.IsValidated is False,
+            UserAccount.IsValidated == False,
         )
         .distinct()
         .count()
@@ -747,7 +747,7 @@ async def get_average_risk_series(year: int, request: Request, db_conn: Session 
     year_end = datetime(year+1, 1, 1)
 
     query = db_conn.query(
-        func.date_format(Prediction.CreatedAt, "%Y-%m").label('date'),
+        func.to_char(Prediction.CreatedAt, "YYYY-MM").label('date'),
         func.avg(Prediction.StrokeChance).label('stroke'),
         func.avg(Prediction.DiabetesChance).label('diabetes'),
         func.avg(Prediction.CVDChance).label('cvd'),
@@ -768,7 +768,7 @@ async def get_login_activity(timespanInDays: int, request: Request, db_conn: Ses
 
     query = db_conn.query(
         func.count(AuditLog.EventType).label("total"),
-        func.date_format(AuditLog.CreatedAt, "%Y-%m-%d").label('date'),
+        func.to_char(AuditLog.CreatedAt, "YYYY-MM-DD").label('date'),
     ).filter(
         AuditLog.EventType == LogEventType.LOGIN,
         AuditLog.CreatedAt > start_date,
@@ -788,7 +788,7 @@ async def get_unvalidated_account_analytics(request: Request, db_conn: Session =
         .join(AccountRole, AccountRole.RoleID == UserAccountRole.RoleID)
         .filter(
             AccountRole.RoleName == "standard_user",
-            UserAccount.IsValidated is False,
+            UserAccount.IsValidated == False,
         )
         .count()
     )
@@ -804,7 +804,7 @@ async def get_user_analytics(request: Request, db_conn: Session = Depends(get_db
     _confirm_admin(request, db_conn)
 
     account_total = db_conn.query(UserAccount).filter(
-        UserAccount.IsValidated == 1).count()
+        UserAccount.IsValidated == True).count()
 
     patient_total = db_conn.query(Patient).filter(
         Patient.UserID == None).count()
@@ -814,7 +814,7 @@ async def get_user_analytics(request: Request, db_conn: Session = Depends(get_db
         .join(AccountRole, UserAccountRole.RoleID == AccountRole.RoleID)
         .filter(
             AccountRole.RoleName == "merchant",
-            UserAccount.IsValidated == 1
+            UserAccount.IsValidated == True
         )
         .count())
 
